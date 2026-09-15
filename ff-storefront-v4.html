@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fractional Fulfillment</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+/* ════════════════════════════════════
+   TOKENS
+════════════════════════════════════ */
+:root {
+  --ink:          #0B0908;
+  --cedar:        #7A3B1E;
+  --cedar-mid:    #9A4E2C;
+  --amber:        #C8782A;
+  --amber-light:  #E09040;
+  --gold:         #D4A853;
+  --parchment:    #F2EBD9;
+  --parchment-dim:#CEC0A8;
+  --ash:          #8A8178;
+  --smoke:        #181512;
+  --smoke-mid:    #201C18;
+  /* Podcast side */
+  --studio-bg:    #090C14;
+  --studio-blue:  #2A6BFF;
+  --studio-glow:  #4A8BFF;
+  --studio-silver:#B8C8E0;
+  --r: 10px;
+  --r-sm: 6px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; font-size: 16px; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--ink);
+  color: var(--parchment);
+  overflow-x: hidden;
+}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--cedar); border-radius: 2px; }
+
+/* ════════════════════════════════════
+   GATE — FULL-SCREEN SPLIT LANDING
+════════════════════════════════════ */
+#gate {
+  position: fixed; inset: 0; z-index: 900;
+  display: flex;
+  transition: opacity 0.6s, transform 0.6s;
+}
+#gate.exiting {
+  opacity: 0; transform: scale(1.04); pointer-events: none;
+}
+#gate.gone { display: none; }
+
+/* thin gold seam between panels */
+.gate-seam {
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--gold) 30%, var(--gold) 70%, transparent);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+/* each half-panel */
+.gate-panel {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: flex 0.55s cubic-bezier(0.77,0,0.175,1);
+}
+.gate-panel:hover { flex: 1.6; }
+
+/* video/bg layer */
+.gp-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+}
+.gp-bg video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0; transition: opacity 1.4s;
+}
+.gp-bg video.loaded { opacity: 1; }
+
+/* Sauna side bg */
+#gate-sauna .gp-bg {
+  background: radial-gradient(ellipse at 30% 70%, #2A1008 0%, #0B0908 60%);
+}
+/* Studio side bg */
+#gate-studio .gp-bg {
+  background: radial-gradient(ellipse at 70% 30%, #0A1428 0%, #090C14 65%);
+}
+
+/* overlay gradient on each panel */
+.gp-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 60%);
+}
+
+/* main word */
+.gp-word {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 0 52px 56px;
+  pointer-events: none;
+}
+
+.gp-eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: 3px;
+  text-transform: uppercase; margin-bottom: 16px;
+  opacity: 0; transform: translateY(10px);
+  transition: opacity 0.35s 0.1s, transform 0.35s 0.1s;
+  display: flex; align-items: center; gap: 10px;
+}
+.gp-eyebrow::before { content: ''; width: 28px; height: 1px; }
+
+.gate-panel:hover .gp-eyebrow {
+  opacity: 1; transform: translateY(0);
+}
+
+#gate-sauna .gp-eyebrow { color: var(--amber); }
+#gate-sauna .gp-eyebrow::before { background: var(--amber); }
+#gate-studio .gp-eyebrow { color: var(--studio-glow); }
+#gate-studio .gp-eyebrow::before { background: var(--studio-glow); }
+
+.gp-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(64px, 9vw, 130px);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -2px;
+  color: var(--parchment);
+  transition: letter-spacing 0.4s, font-size 0.4s;
+}
+
+.gate-panel:hover .gp-title {
+  letter-spacing: -1px;
+}
+
+#gate-studio .gp-title {
+  color: #FFFFFF;
+}
+
+.gp-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17px; font-weight: 300; line-height: 1.6;
+  color: var(--parchment-dim);
+  margin-top: 14px; max-width: 340px;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 0.35s 0.15s, transform 0.35s 0.15s;
+}
+.gate-panel:hover .gp-sub { opacity: 1; transform: translateY(0); }
+#gate-studio .gp-sub { color: var(--studio-silver); }
+
+.gp-enter {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-top: 28px; padding: 14px 32px;
+  border-radius: 7px; font-size: 14px; font-weight: 700;
+  font-family: 'Inter', sans-serif; letter-spacing: 0.5px;
+  border: none; cursor: pointer;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity 0.3s 0.2s, transform 0.3s 0.2s, background 0.2s;
+  pointer-events: none;
+}
+.gate-panel:hover .gp-enter { opacity: 1; transform: translateY(0); pointer-events: all; }
+#gate-sauna .gp-enter { background: var(--cedar); color: var(--parchment); }
+#gate-sauna .gp-enter:hover { background: var(--cedar-mid); }
+#gate-studio .gp-enter { background: var(--studio-blue); color: #fff; }
+#gate-studio .gp-enter:hover { background: var(--studio-glow); }
+
+/* divider label */
+.gate-seam::after {
+  content: 'FF';
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--gold); color: var(--ink);
+  font-family: 'Playfair Display', serif;
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 30px rgba(212,168,83,0.4);
+}
+
+/* decorative particles on sauna side */
+.ember-field {
+  position: absolute; inset: 0; pointer-events: none;
+  overflow: hidden;
+}
+.ember {
+  position: absolute; border-radius: 50%;
+  background: var(--amber);
+  animation: ember-rise var(--dur, 4s) ease-in infinite;
+  animation-delay: var(--del, 0s);
+  opacity: 0;
+}
+@keyframes ember-rise {
+  0% { opacity: 0; transform: translateY(0) scale(1); }
+  20% { opacity: 0.6; }
+  80% { opacity: 0.2; }
+  100% { opacity: 0; transform: translateY(-120px) scale(0.3) translateX(var(--drift,20px)); }
+}
+
+/* studio waveform decoration */
+.wave-bars {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 120px;
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 3px; padding: 0 40px; pointer-events: none; opacity: 0.15;
+}
+.wave-bar {
+  flex: 1; background: var(--studio-blue);
+  border-radius: 2px 2px 0 0;
+  animation: wave-pulse var(--spd,1.2s) ease-in-out infinite alternate;
+  animation-delay: var(--wdel,0s);
+}
+@keyframes wave-pulse {
+  from { height: var(--hmin, 8px); }
+  to   { height: var(--hmax, 60px); }
+}
+
+/* ════════════════════════════════════
+   SITE CONTENT (hidden until gate exits)
+════════════════════════════════════ */
+#site { display: none; }
+#site.visible { display: block; }
+
+/* ════════════════════════════════════
+   NAV
+════════════════════════════════════ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px; height: 68px;
+  transition: background 0.4s, border-color 0.4s, backdrop-filter 0.4s;
+  border-bottom: 1px solid transparent;
+}
+nav.scrolled {
+  background: rgba(11,9,8,0.92);
+  border-bottom-color: rgba(242,235,217,0.07);
+  backdrop-filter: blur(20px);
+}
+.nav-logo {
+  font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700;
+  color: var(--parchment); text-decoration: none; letter-spacing: 0.2px;
+}
+.nav-logo small {
+  display: block; font-family: 'Inter', sans-serif; font-size: 9px;
+  font-weight: 500; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ash); margin-top: 1px;
+}
+.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-links a {
+  font-size: 13px; font-weight: 500; color: var(--ash);
+  text-decoration: none; transition: color 0.2s; letter-spacing: 0.2px;
+}
+.nav-links a:hover { color: var(--parchment); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+/* Back to gate button */
+.btn-gate-back {
+  padding: 7px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;
+  background: transparent; border: 1px solid rgba(242,235,217,0.18);
+  color: var(--parchment-dim); cursor: pointer; font-family: 'Inter', sans-serif;
+  transition: all 0.2s; letter-spacing: 0.3px;
+}
+.btn-gate-back:hover { border-color: var(--gold); color: var(--gold); }
+.btn-nav-cta {
+  padding: 9px 20px; border-radius: 6px; font-size: 13px; font-weight: 700;
+  background: var(--cedar); color: var(--parchment); border: none;
+  cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.2s;
+  text-decoration: none;
+}
+.btn-nav-cta:hover { background: var(--cedar-mid); }
+
+/* ════════════════════════════════════
+   HERO — SAUNA
+════════════════════════════════════ */
+#hero {
+  position: relative; width: 100%; height: 100vh;
+  overflow: hidden; display: flex; align-items: flex-end;
+}
+.hero-bg-layer { position: absolute; inset: 0; z-index: 0; }
+.hero-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: 0; transition: opacity 1.3s ease;
+}
+.hero-video.active { opacity: 1; }
+.hero-fallback {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 35% 65%, #2A1008 0%, #0B0908 70%);
+}
+.hero-vignette {
+  position: absolute; inset: 0; z-index: 1;
+  background:
+    linear-gradient(to top, rgba(11,9,8,1) 0%, rgba(11,9,8,0.5) 35%, rgba(11,9,8,0.05) 65%, rgba(11,9,8,0.25) 100%),
+    linear-gradient(to right, rgba(11,9,8,0.55) 0%, transparent 45%);
+}
+.hero-content {
+  position: relative; z-index: 10; width: 100%;
+  padding: 0 52px; display: flex;
+  align-items: flex-end; justify-content: space-between; gap: 40px;
+}
+.hero-left { max-width: 600px; padding-bottom: 80px; }
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
+  text-transform: uppercase; color: var(--amber); margin-bottom: 18px;
+}
+.hero-eyebrow::before { content:''; width: 28px; height: 1px; background: var(--amber); }
+h1.hero-hed {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(42px, 4.8vw, 68px);
+  font-weight: 600; line-height: 1.06; color: var(--parchment); margin-bottom: 20px;
+}
+h1.hero-hed em { font-style: italic; color: var(--amber); }
+.hero-body {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px; font-weight: 300; line-height: 1.7;
+  color: var(--parchment-dim); margin-bottom: 32px; max-width: 460px;
+  min-height: 54px; transition: opacity 0.3s;
+}
+.hero-acts { display: flex; align-items: center; gap: 14px; }
+.btn-hp {
+  padding: 14px 34px; background: var(--cedar); color: var(--parchment);
+  border: none; border-radius: 7px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: 'Inter', sans-serif; letter-spacing: 0.3px;
+  transition: all 0.2s; text-decoration: none; display: inline-block;
+}
+.btn-hp:hover { background: var(--cedar-mid); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(122,59,30,0.4); }
+.btn-hg {
+  padding: 13px 26px; background: transparent; color: var(--parchment);
+  border: 1px solid rgba(242,235,217,0.28); border-radius: 7px;
+  font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+  text-decoration: none;
+}
+.btn-hg:hover { border-color: var(--amber); color: var(--amber); }
+
+/* video status pill */
+.vs-pill {
+  position: absolute; top: 84px; right: 52px; z-index: 50;
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(11,9,8,0.7); border: 1px solid rgba(242,235,217,0.1);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.5px; color: var(--ash);
+  backdrop-filter: blur(10px);
+}
+.vs-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ash); }
+.vs-pill.live .vs-dot { background: #4ADE80; animation: vspulse 2s infinite; }
+.vs-pill.gen .vs-dot  { background: var(--amber); animation: vspulse 1s infinite; }
+@keyframes vspulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+
+/* scroll hint */
+.scroll-cue {
+  position: absolute; bottom: 28px; left: 50%;
+  transform: translateX(-50%); z-index: 10;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+}
+.scroll-line {
+  width: 1px; height: 44px;
+  background: linear-gradient(to bottom, var(--amber), transparent);
+  animation: scl 2.2s ease-in-out infinite;
+}
+@keyframes scl {
+  0%{opacity:0;transform:scaleY(0);transform-origin:top;}
+  50%{opacity:1;}
+  100%{opacity:0;transform:scaleY(1);transform-origin:bottom;}
+}
+.scroll-cue span { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--ash); }
+
+/* ════════════════════════════════════
+   CAROUSEL SIDEBAR (hero right)
+════════════════════════════════════ */
+.hero-right { flex-shrink: 0; width: 350px; padding-bottom: 64px; }
+.carousel-track { display: flex; flex-direction: column; gap: 4px; }
+.cc {
+  background: rgba(11,9,8,0.62); border: 1px solid rgba(242,235,217,0.08);
+  border-radius: var(--r); overflow: hidden; cursor: pointer;
+  transition: all 0.3s; backdrop-filter: blur(16px);
+}
+.cc.active { border-color: rgba(200,120,42,0.5); background: rgba(122,59,30,0.22); }
+.cc:hover:not(.active) { border-color: rgba(242,235,217,0.18); background: rgba(242,235,217,0.04); }
+.cc-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 18px; gap: 12px;
+}
+.cc-l { display: flex; align-items: center; gap: 10px; }
+.cc-n { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; color: var(--ash); width: 18px; }
+.cc.active .cc-n { color: var(--amber); }
+.cc-nm { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 600; color: var(--parchment); }
+.cc-cap { font-size: 10px; color: var(--ash); margin-top: 2px; }
+.cc.active .cc-cap { color: var(--parchment-dim); }
+.cc-r { text-align: right; flex-shrink: 0; }
+.cc-price { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 600; color: var(--amber); }
+.cc-arr { font-size: 11px; color: var(--ash); display: block; margin-top: 2px; transition: transform 0.3s; }
+.cc.active .cc-arr { transform: rotate(90deg); color: var(--amber); }
+
+/* expanded detail drawer */
+.cc-drawer {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1);
+  padding: 0 18px;
+}
+.cc.active .cc-drawer { max-height: 280px; padding: 0 18px 16px; border-top: 1px solid rgba(242,235,217,0.07); }
+.cc-specs-row { display: flex; gap: 5px; flex-wrap: wrap; margin: 12px 0 10px; }
+.cc-spec {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.3px;
+  background: rgba(242,235,217,0.06); border: 1px solid rgba(242,235,217,0.1);
+  border-radius: 4px; padding: 3px 7px; color: var(--parchment-dim);
+}
+.cc-desc { font-size: 11px; color: var(--ash); line-height: 1.6; margin-bottom: 12px; }
+.cc-btns { display: flex; gap: 7px; }
+.btn-cc-buy {
+  flex: 1; padding: 9px; background: var(--cedar); color: var(--parchment);
+  border: none; border-radius: 6px; font-size: 11px; font-weight: 700;
+  cursor: pointer; font-family: 'Inter', sans-serif; text-align: center;
+  transition: background 0.2s; text-decoration: none; display: block;
+  letter-spacing: 0.3px;
+}
+.btn-cc-buy:hover { background: var(--cedar-mid); }
+.btn-cc-tour {
+  padding: 9px 12px; background: transparent; color: var(--amber);
+  border: 1px solid rgba(200,120,42,0.4); border-radius: 6px;
+  font-size: 10px; font-weight: 700; cursor: pointer;
+  font-family: 'Inter', sans-serif; letter-spacing: 0.5px; text-transform: uppercase;
+  transition: all 0.2s; white-space: nowrap;
+}
+.btn-cc-tour:hover { background: rgba(200,120,42,0.14); border-color: var(--amber); }
+
+/* ════════════════════════════════════
+   ABOUT SECTION
+════════════════════════════════════ */
+#about {
+  background: var(--smoke-mid);
+  border-top: 1px solid rgba(242,235,217,0.06);
+  border-bottom: 1px solid rgba(242,235,217,0.06);
+  padding: 80px 52px;
+}
+.about-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; max-width: 1100px; margin: 0 auto; }
+.section-ey { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--amber); font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+.section-ey::before { content:''; width: 22px; height: 1px; background: var(--amber); }
+h2.section-h { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 600; line-height: 1.18; margin-bottom: 18px; }
+.section-body { font-size: 14px; color: var(--parchment-dim); line-height: 1.82; margin-bottom: 26px; }
+.pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.pillar { display: flex; align-items: flex-start; gap: 9px; }
+.pillar-icon { font-size: 17px; flex-shrink: 0; margin-top: 2px; }
+.pillar-text { font-size: 12px; color: var(--parchment-dim); line-height: 1.55; }
+.pillar-text strong { display: block; font-size: 12px; color: var(--parchment); font-weight: 600; margin-bottom: 2px; }
+.stats-col { display: flex; flex-direction: column; gap: 22px; }
+.stat-b { border-left: 2px solid var(--cedar); padding-left: 20px; }
+.stat-b .sv { font-family: 'Playfair Display', serif; font-size: 46px; font-weight: 700; color: var(--amber); line-height: 1; }
+.stat-b .sl { font-size: 11px; color: var(--ash); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+/* ════════════════════════════════════
+   PRODUCTS GRID
+════════════════════════════════════ */
+#products { padding: 96px 52px; }
+.sec-header { text-align: center; margin-bottom: 56px; }
+.sec-ey {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 2.5px;
+  color: var(--amber); font-weight: 700; margin-bottom: 13px;
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+}
+.sec-ey::before, .sec-ey::after { content:''; flex: 1; max-width: 56px; height: 1px; background: rgba(200,120,42,0.38); }
+h2.sec-h { font-family: 'Playfair Display', serif; font-size: 40px; font-weight: 600; line-height: 1.15; }
+.product-grid {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 18px; max-width: 1200px; margin: 0 auto;
+}
+.pc {
+  background: var(--smoke-mid); border: 1px solid rgba(242,235,217,0.07);
+  border-radius: var(--r); overflow: hidden;
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.pc:hover { transform: translateY(-4px); border-color: rgba(200,120,42,0.28); box-shadow: 0 18px 56px rgba(0,0,0,0.5); }
+.pc-img {
+  height: 210px; position: relative; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 60%, #2A1008 0%, #0B0908 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.pc-img-icon { font-size: 58px; opacity: 0.55; }
+.pc-bdg {
+  position: absolute; top: 11px; left: 11px;
+  background: var(--cedar); color: var(--parchment);
+  font-size: 8px; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+}
+.pc-bdg.pop { background: var(--amber); color: var(--ink); }
+.pc-vbtn {
+  position: absolute; bottom: 11px; right: 11px;
+  background: rgba(11,9,8,0.82); border: 1px solid rgba(200,120,42,0.5);
+  color: var(--amber); font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+  padding: 5px 11px; border-radius: 20px; cursor: pointer;
+  text-transform: uppercase; transition: all 0.2s; backdrop-filter: blur(8px);
+}
+.pc-vbtn:hover { background: rgba(122,59,30,0.65); }
+.pc-body { padding: 20px; }
+.pc-model { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--amber); font-weight: 700; margin-bottom: 5px; }
+.pc-name { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; margin-bottom: 7px; line-height: 1.2; }
+.pc-cap { font-size: 11px; color: var(--ash); margin-bottom: 13px; }
+.pc-specs { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+.pc-spec-row { display: flex; justify-content: space-between; font-size: 11px; border-bottom: 1px solid rgba(242,235,217,0.05); padding-bottom: 4px; }
+.pc-spec-row .sk { color: var(--ash); }
+.pc-spec-row .sv { color: var(--parchment-dim); font-weight: 500; }
+.pc-foot { display: flex; align-items: center; justify-content: space-between; }
+.pc-price { font-family: 'Playfair Display', serif; font-size: 21px; font-weight: 700; }
+.pc-price small { font-size: 10px; color: var(--ash); font-family: 'Inter', sans-serif; font-weight: 400; display: block; margin-top: 1px; }
+.btn-buy {
+  padding: 9px 16px; background: var(--cedar); color: var(--parchment);
+  border: none; border-radius: 6px; font-size: 11px; font-weight: 700;
+  cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.2s;
+  text-decoration: none; display: inline-block;
+}
+.btn-buy:hover { background: var(--cedar-mid); }
+
+/* ════════════════════════════════════
+   QUOTE / CTA
+════════════════════════════════════ */
+#quote {
+  background: linear-gradient(135deg, #1A100A 0%, #0B0908 55%, #140E0A 100%);
+  border-top: 1px solid rgba(200,120,42,0.13); border-bottom: 1px solid rgba(200,120,42,0.13);
+  padding: 80px 52px; text-align: center; position: relative; overflow: hidden;
+}
+#quote::before {
+  content:''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(200,120,42,0.07) 0%, transparent 58%);
+}
+.quote-inner { position: relative; max-width: 580px; margin: 0 auto; }
+.q-h { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 600; margin-bottom: 11px; }
+.q-sub { font-size: 14px; color: var(--parchment-dim); line-height: 1.72; margin-bottom: 30px; }
+.q-form { display: flex; gap: 9px; max-width: 460px; margin: 0 auto; }
+.q-input {
+  flex: 1; background: rgba(242,235,217,0.06); border: 1px solid rgba(242,235,217,0.14);
+  border-radius: 7px; padding: 12px 16px; color: var(--parchment); font-size: 14px;
+  font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s;
+}
+.q-input:focus { border-color: var(--amber); }
+.q-input::placeholder { color: var(--ash); }
+.btn-q {
+  padding: 12px 26px; background: var(--cedar); color: var(--parchment);
+  border: none; border-radius: 7px; font-size: 14px; font-weight: 700;
+  cursor: pointer; font-family: 'Inter', sans-serif; white-space: nowrap; transition: background 0.2s;
+}
+.btn-q:hover { background: var(--cedar-mid); }
+.q-note { font-size: 11px; color: var(--ash); margin-top: 13px; }
+
+/* ════════════════════════════════════
+   PODCAST HOLDING PAGE
+════════════════════════════════════ */
+#podcast-page {
+  display: none; min-height: 100vh;
+  background: var(--studio-bg);
+  position: relative; overflow: hidden;
+}
+#podcast-page.visible { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.pod-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 40%, #0F1E40 0%, #090C14 70%);
+}
+.pod-wave {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 160px; display: flex; align-items: flex-end; justify-content: center;
+  gap: 3px; padding: 0 0 0; opacity: 0.12;
+}
+.pod-bar {
+  width: 4px; background: var(--studio-blue); border-radius: 2px 2px 0 0;
+  animation: wavep var(--spd,1s) ease-in-out infinite alternate;
+  animation-delay: var(--del,0s);
+}
+@keyframes wavep {
+  from { height: var(--h1, 10px); }
+  to   { height: var(--h2, 80px); }
+}
+.pod-content { position: relative; z-index: 2; text-align: center; max-width: 600px; padding: 40px 40px; }
+.pod-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(42,107,255,0.15); border: 1px solid rgba(42,107,255,0.35);
+  border-radius: 20px; padding: 6px 16px; margin-bottom: 28px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--studio-glow);
+}
+.pod-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--studio-glow); animation: vspulse 2s infinite; }
+.pod-icon { font-size: 72px; margin-bottom: 20px; display: block; opacity: 0.85; }
+.pod-title { font-family: 'Playfair Display', serif; font-size: 52px; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 16px; letter-spacing: -1px; }
+.pod-sub { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 300; color: var(--studio-silver); line-height: 1.65; margin-bottom: 36px; }
+.pod-coming {
+  display: inline-block; padding: 14px 36px;
+  border: 1px solid rgba(42,107,255,0.45);
+  border-radius: 7px; font-size: 14px; font-weight: 600;
+  color: var(--studio-silver); letter-spacing: 0.3px;
+  background: rgba(42,107,255,0.08);
+}
+.pod-back {
+  display: inline-flex; align-items: center; gap: 8px; margin-top: 20px;
+  font-size: 13px; color: var(--studio-silver); cursor: pointer;
+  background: none; border: none; font-family: 'Inter', sans-serif;
+  opacity: 0.6; transition: opacity 0.2s;
+}
+.pod-back:hover { opacity: 1; }
+
+/* ════════════════════════════════════
+   VIRTUAL TOUR MODAL
+════════════════════════════════════ */
+.tour-ov {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.96);
+  z-index: 600; opacity: 0; pointer-events: none;
+  transition: opacity 0.3s; display: flex; flex-direction: column;
+}
+.tour-ov.open { opacity: 1; pointer-events: all; }
+.tour-bar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 28px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.85), transparent);
+}
+.tour-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; }
+.tour-x { width: 34px; height: 34px; border-radius: 7px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: var(--parchment); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tour-stage { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.tour-vid { width: 100%; height: 100%; object-fit: cover; display: none; }
+.tour-ph {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+}
+.tph-icon { font-size: 60px; margin-bottom: 18px; opacity: 0.5; }
+.tph-title { font-family: 'Playfair Display', serif; font-size: 24px; margin-bottom: 7px; }
+.tph-sub { font-size: 13px; color: var(--ash); max-width: 360px; line-height: 1.6; margin-bottom: 26px; }
+.upload-zone {
+  border: 2px dashed rgba(200,120,42,0.38); border-radius: 12px;
+  padding: 26px 42px; cursor: pointer; transition: all 0.2s;
+  background: rgba(200,120,42,0.04); position: relative; min-width: 300px;
+}
+.upload-zone:hover { border-color: var(--amber); background: rgba(200,120,42,0.09); }
+.upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.uz-ic { font-size: 24px; display: block; margin-bottom: 7px; }
+.uz-t { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
+.uz-s { font-size: 11px; color: var(--ash); }
+.gen-box { display: none; background: rgba(122,59,30,0.12); border: 1px solid rgba(200,120,42,0.25); border-radius: 12px; padding: 26px 34px; text-align: center; min-width: 320px; }
+.gen-box.show { display: block; }
+.gen-sp { width: 42px; height: 42px; border-radius: 50%; border: 3px solid rgba(200,120,42,0.18); border-top-color: var(--amber); animation: spin 1s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.gen-lbl { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+.gen-meta { font-size: 11px; color: var(--ash); }
+.gen-prevs { display: flex; gap: 7px; justify-content: center; margin-top: 12px; }
+.gen-prevs img { width: 52px; height: 52px; object-fit: cover; border-radius: 5px; border: 1px solid rgba(200,120,42,0.28); opacity: 0.72; }
+/* feature pills */
+.tour-feats {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+  padding: 0 30px 26px; pointer-events: none;
+}
+.feat-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(240,232,216,0.4); font-weight: 700; margin-bottom: 9px; }
+.feat-pills { display: flex; gap: 7px; flex-wrap: wrap; pointer-events: all; }
+.fpill {
+  display: flex; align-items: center; gap: 7px;
+  background: rgba(11,9,8,0.82); border: 1px solid rgba(200,120,42,0.28);
+  border-radius: 100px; padding: 6px 13px 6px 8px;
+  cursor: pointer; transition: all 0.18s; backdrop-filter: blur(12px);
+}
+.fpill:hover, .fpill.on { background: rgba(122,59,30,0.52); border-color: var(--amber); }
+.fp-ic { width: 24px; height: 24px; border-radius: 50%; background: rgba(200,120,42,0.14); border: 1px solid rgba(200,120,42,0.38); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+.fp-lb { font-size: 11px; font-weight: 600; color: var(--parchment); }
+.feat-tip {
+  position: absolute; bottom: 96px; left: 30px;
+  background: rgba(11,9,8,0.95); border: 1px solid rgba(200,120,42,0.32);
+  border-radius: 11px; padding: 14px 18px; max-width: 280px;
+  backdrop-filter: blur(16px); opacity: 0; transform: translateY(7px);
+  transition: all 0.2s; z-index: 20; pointer-events: none;
+}
+.feat-tip.on { opacity: 1; transform: translateY(0); }
+.ft-h { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+.ft-b { font-size: 11px; color: var(--parchment-dim); line-height: 1.6; }
+.ft-rows { margin-top: 9px; display: flex; flex-direction: column; gap: 4px; }
+.ft-row { display: flex; justify-content: space-between; font-size: 10px; }
+.ft-k { color: var(--ash); }
+.ft-v { color: var(--amber); font-weight: 700; }
+
+/* ════════════════════════════════════
+   FOOTER
+════════════════════════════════════ */
+footer {
+  background: var(--smoke-mid);
+  border-top: 1px solid rgba(242,235,217,0.06);
+  padding: 52px 52px 28px;
+}
+.fg { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 44px; margin-bottom: 44px; max-width: 1100px; }
+.fb h3 { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; margin-bottom: 9px; }
+.fb p { font-size: 12px; color: var(--ash); line-height: 1.72; max-width: 240px; }
+.fc h4 { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; color: var(--ash); margin-bottom: 13px; }
+.fc a { display: block; font-size: 12px; color: var(--ash); text-decoration: none; margin-bottom: 7px; transition: color 0.2s; }
+.fc a:hover { color: var(--parchment); }
+.fbar {
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: 1px solid rgba(242,235,217,0.06); padding-top: 22px;
+  font-size: 11px; color: var(--ash);
+}
+
+/* ════════════════════════════════════
+   TOAST
+════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 26px; left: 50%;
+  transform: translateX(-50%) translateY(70px);
+  background: var(--cedar); color: var(--parchment);
+  padding: 11px 24px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  z-index: 9999; transition: transform 0.3s; pointer-events: none; white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     GATE — SPLIT LANDING SCREEN
+════════════════════════════════════ -->
+<div id="gate">
+
+  <!-- ── SAUNA PANEL ── -->
+  <div class="gate-panel" id="gate-sauna" onclick="enterSauna()">
+    <div class="gp-bg">
+      <video id="gate-vid-sauna" loop muted playsinline autoplay></video>
+      <!-- ember particles -->
+      <div class="ember-field" id="emberField"></div>
+    </div>
+    <div class="gp-overlay"></div>
+    <div class="gp-word">
+      <div class="gp-eyebrow">ThermoWood® Collection</div>
+      <div class="gp-title">SAUNA</div>
+      <div class="gp-sub">Handcrafted in Lithuania. MW12, MW16 & MW20 — built for every backyard, every season.</div>
+      <button class="gp-enter" onclick="event.stopPropagation(); enterSauna()">
+        Explore Collection →
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SEAM ── -->
+  <div class="gate-seam"></div>
+
+  <!-- ── PODCAST STUDIO PANEL ── -->
+  <div class="gate-panel" id="gate-studio" onclick="enterPodcast()">
+    <div class="gp-bg">
+      <video id="gate-vid-studio" loop muted playsinline autoplay></video>
+      <div class="wave-bars" id="waveBars"></div>
+    </div>
+    <div class="gp-overlay" style="background:linear-gradient(to top,rgba(9,12,20,0.85) 0%,rgba(9,12,20,0.05) 60%)"></div>
+    <div class="gp-word">
+      <div class="gp-eyebrow">Buy A Studio</div>
+      <div class="gp-title" style="color:#fff">PODCAST<br>STUDIO</div>
+      <div class="gp-sub" style="color:var(--studio-silver)">Professional-grade recording, production, and distribution. Your voice, amplified.</div>
+      <button class="gp-enter" onclick="event.stopPropagation(); enterPodcast()">
+        Coming Soon →
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════
+     SAUNA SITE
+════════════════════════════════════ -->
+<div id="site">
+
+  <!-- NAV -->
+  <nav id="mainNav">
+    <a class="nav-logo" href="#" onclick="returnToGate(event)">
+      Fractional Fulfillment
+      <small>ThermoWood® Sauna Dealer</small>
+    </a>
+    <div class="nav-links">
+      <a href="#products">Collection</a>
+      <a href="#about">About</a>
+      <a href="#quote">Get a Quote</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn-gate-back" onclick="returnToGate()">⬡ All Products</button>
+      <a class="btn-nav-cta" href="#products">Shop Now</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-fallback"></div>
+    <div class="hero-bg-layer">
+      <video class="hero-video active" id="hv-mw12" loop muted playsinline autoplay></video>
+      <video class="hero-video" id="hv-mw16" loop muted playsinline></video>
+      <video class="hero-video" id="hv-mw20" loop muted playsinline></video>
+      <video class="hero-video" id="hv-plunge" loop muted playsinline></video>
+    </div>
+    <div class="hero-vignette"></div>
+    <div class="vs-pill" id="vsPill"><div class="vs-dot"></div><span id="vsLbl">Video pending — upload photos in Admin</span></div>
+
+    <div class="hero-content">
+      <div class="hero-left">
+        <div class="hero-eyebrow">Authorized ThermoWood® Dealer</div>
+        <h1 class="hero-hed">Scandinavian <em>craft.</em><br>American&nbsp;backyard.</h1>
+        <p class="hero-body" id="heroBody">Handcrafted in Lithuania from sustainably sourced ThermoWood®. Every sauna arrives ready to build — engineered for all four seasons, made to last decades.</p>
+        <div class="hero-acts">
+          <a class="btn-hp" href="#products">Explore Collection</a>
+          <button class="btn-hg" onclick="openTour(activeProduct)">▶ Virtual Tour</button>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="carousel-track" id="carouselTrack"></div>
+      </div>
+    </div>
+
+    <div class="scroll-cue"><div class="scroll-line"></div><span>Scroll</span></div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="about-inner">
+      <div>
+        <div class="section-ey">Our Promise</div>
+        <h2 class="section-h">European craft.<br>Zero compromise.</h2>
+        <p class="section-body">We are an authorized dealer of Mande Spa USA's ThermoWood® collection — Europe's most trusted outdoor sauna manufacturer, now available with white-glove service and full assembly within 100 miles of our Cedar City, Utah warehouse.</p>
+        <div class="pillars">
+          <div class="pillar"><div class="pillar-icon">🪵</div><div class="pillar-text"><strong>ThermoWood®</strong>Thermally modified, chemical-free. Resistant to rot, moisture, and UV for decades.</div></div>
+          <div class="pillar"><div class="pillar-icon">🇱🇹</div><div class="pillar-text"><strong>Lithuanian Craft</strong>Hand-built by artisans with generations of sauna tradition.</div></div>
+          <div class="pillar"><div class="pillar-icon">🚛</div><div class="pillar-text"><strong>$950 Flat Shipping</strong>Nationwide curbside delivery, liftgate included.</div></div>
+          <div class="pillar"><div class="pillar-icon">🛠</div><div class="pillar-text"><strong>Local Assembly</strong>Professional install within 100 mi of Cedar City, UT.</div></div>
+        </div>
+      </div>
+      <div class="stats-col">
+        <div class="stat-b"><div class="sv">3</div><div class="sl">ThermoWood® models</div></div>
+        <div class="stat-b"><div class="sv">10yr</div><div class="sl">Structural warranty</div></div>
+        <div class="stat-b"><div class="sv">$950</div><div class="sl">Flat-rate US shipping</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section id="products">
+    <div class="sec-header">
+      <div class="sec-ey">The Collection</div>
+      <h2 class="sec-h">Four paths to your perfect sauna</h2>
+    </div>
+    <div class="product-grid" id="productGrid"></div>
+  </section>
+
+  <!-- QUOTE -->
+  <section id="quote">
+    <div class="quote-inner">
+      <h2 class="q-h">Ready to bring the heat home?</h2>
+      <p class="q-sub">Enter your email and we'll reach out within one business day with a recommendation, pricing, and delivery timeline for your location.</p>
+      <div class="q-form">
+        <input class="q-input" placeholder="Your email address" id="qEmail" type="email">
+        <button class="btn-q" onclick="submitQuote()">Get a Quote</button>
+      </div>
+      <p class="q-note">No spam. One expert who knows saunas.</p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="fg">
+      <div class="fb"><h3>Fractional Fulfillment</h3><p>Authorized ThermoWood® dealer. Bringing European sauna craft to American backyards.</p></div>
+      <div class="fc"><h4>Collection</h4><a href="#products">MW12 — 2–3 Person</a><a href="#products">MW16 — 4–5 Person</a><a href="#products">MW20 — 5–6 Person</a><a href="#products">Cold Plunge Add-On</a></div>
+      <div class="fc"><h4>Company</h4><a href="#about">About Us</a><a href="#">Dealer Partner</a><a href="#">Installation</a><a href="#">FAQ</a></div>
+      <div class="fc"><h4>Contact</h4><a href="mailto:hello@fractionalfulfillment.com">hello@fractionalfulfillment.com</a><a href="tel:4355550192">(435) 555-0192</a><a href="#">Cedar City, UT</a></div>
+    </div>
+    <div class="fbar"><span>© 2025 Fractional Fulfillment. Authorized dealer of Mande Spa USA.</span><span>Built on ThermoWood®</span></div>
+  </footer>
+
+</div><!-- /#site -->
+
+<!-- ════════════════════════════════════
+     PODCAST HOLDING PAGE
+════════════════════════════════════ -->
+<div id="podcast-page">
+  <div class="pod-bg"></div>
+  <div class="pod-wave" id="podWave"></div>
+  <div class="pod-content">
+    <div class="pod-badge"><div class="pod-badge-dot"></div>In Development</div>
+    <span class="pod-icon">🎙</span>
+    <div class="pod-title">Podcast<br>Studio</div>
+    <p class="pod-sub">Professional-grade recording, production, and distribution. Your voice, engineered to be heard. Coming soon to Cedar City.</p>
+    <div class="pod-coming">Studio Opening — 2027</div>
+    <br>
+    <button class="pod-back" onclick="returnToGate()">← Back to Home</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     VIRTUAL TOUR MODAL
+════════════════════════════════════ -->
+<div class="tour-ov" id="tourOv">
+  <div class="tour-bar">
+    <div class="tour-title" id="tourTtl">Virtual Tour</div>
+    <button class="tour-x" onclick="closeTour()">✕</button>
+  </div>
+  <div class="tour-stage">
+    <video class="tour-vid" id="tourVid" loop playsinline></video>
+    <div class="tour-ph" id="tourPh">
+      <div class="tph-icon" id="tphIcon">🌲</div>
+      <div class="tph-title" id="tphTitle">Loading…</div>
+      <p class="tph-sub">Upload sauna photos and Higgsfield will generate a cinematic luxury tour video.</p>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="photoIn" accept="image/*" multiple onchange="handlePhotoSelect(event)">
+        <span class="uz-ic">📸</span>
+        <div class="uz-t">Drop photos or click to browse</div>
+        <div class="uz-s">1–5 JPG/PNG · Higgsfield Seedance 2.0</div>
+      </div>
+      <div class="gen-box" id="genBox">
+        <div class="gen-sp"></div>
+        <div class="gen-lbl" id="genLbl">Uploading to Higgsfield…</div>
+        <div class="gen-meta">Seedance 2.0 · Cinematic luxury · 1080p</div>
+        <div class="gen-prevs" id="genPrevs"></div>
+      </div>
+    </div>
+    <div class="feat-tip" id="featTip">
+      <div class="ft-h" id="ftH"></div>
+      <div class="ft-b" id="ftB"></div>
+      <div class="ft-rows" id="ftRows"></div>
+    </div>
+    <div class="tour-feats">
+      <div class="feat-lbl">Explore Features</div>
+      <div class="feat-pills" id="featPills"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════
+   DATA
+════════════════════════════════════ */
+const PRODUCTS = [
+  {
+    id:'mw12', model:'MW12', name:'Outdoor Cube Sauna', cap:'2–3 people',
+    price:'$6,599', priceNum:6599, badge:'Entry Luxury', pop:false,
+    stripeLink:'https://buy.stripe.com/YOUR_MW12_LINK',
+    icon:'🌲', videoId:'hv-mw12', videoUrl:null,
+    desc:'The perfect compact retreat. Cube design, ThermoWood® construction, and thoughtful interior detailing make the MW12 a backyard centerpiece.',
+    dims:'65.0″ × 63.0″', thick:'1.57″ walls',
+    specs:[['Capacity','2–3 People'],['Dimensions','65.0″ × 63.0″'],['Wall Thickness','1.57″'],['Material','ThermoWood®'],['Shipping','$950 Flat'],['Warranty','10 Years']],
+    features:[
+      {id:'ext',icon:'🪵',name:'ThermoWood® Shell',desc:'Scandinavian thermally-modified wood. No chemicals — heat and steam only.',specs:[['Source','Sustainably Managed'],['Process','Heat & Steam'],['Lifespan','30+ Years']]},
+      {id:'htr',icon:'🔥',name:'Harvia Heater',desc:'Finnish electric heater reaches 185°F in under 30 minutes.',specs:[['Reach','185°F'],['Preheat','~25 min'],['Control','Digital']]},
+      {id:'bnc',icon:'🪑',name:'Tiered Cedar Benches',desc:'Grade A clear cedar in two tiers for optimal heat positioning.',specs:[['Levels','2-tier'],['Wood','Grade A Cedar'],['Finish','Natural Oil']]},
+      {id:'wnd',icon:'🔲',name:'Tempered Glass Door',desc:'Double-pane tempered glass with panoramic window. Seals heat, frames the view.',specs:[['Type','Double-pane'],['Seal','Silicone Gasket'],['Handle','Stainless Steel']]},
+    ]
+  },
+  {
+    id:'mw16', model:'MW16', name:'Outdoor Cabin Sauna', cap:'4–5 people',
+    price:'$7,699', priceNum:7699, badge:'Most Popular', pop:true,
+    stripeLink:'https://buy.stripe.com/YOUR_MW16_LINK',
+    icon:'🏔', videoId:'hv-mw16', videoUrl:null,
+    desc:'The family favorite. Extended interior, upgraded LED lighting, and a classic pitched roof — room for everyone.',
+    dims:'75.6″ × 75.6″', thick:'1.57″ walls',
+    specs:[['Capacity','4–5 People'],['Dimensions','75.6″ × 75.6″'],['Wall Thickness','1.57″'],['Material','ThermoWood®'],['Shipping','$950 Flat'],['Warranty','10 Years']],
+    features:[
+      {id:'ext',icon:'🪵',name:'ThermoWood® Shell',desc:'Same premium shell as MW12 — scaled up with additional insulation for larger volume.',specs:[['Volume','30% Larger'],['Insulation','R-14 Equiv.'],['Roof','Bituminous Tile']]},
+      {id:'led',icon:'💡',name:'Integrated LED',desc:'Warm amber LED strips in bench fascias. Dimmable wall control.',specs:[['Temp','2700K Warm'],['Control','Wall Dimmer'],['IP Rating','IP65']]},
+      {id:'htr',icon:'🔥',name:'Harvia 8kW Heater',desc:'8kW output heats the MW16 cabin fast.',specs:[['Output','8 kW'],['Preheat','~28 min'],['Stones','~17 lbs']]},
+      {id:'bnc',icon:'🪑',name:'L-Bench Layout',desc:'L-shaped bench allows 4–5 to recline simultaneously.',specs:[['Config','L-Shaped'],['Seated','4–5'],['Reclined','2–3']]},
+    ]
+  },
+  {
+    id:'mw20', model:'MW20', name:'Outdoor Grand Sauna', cap:'5–6 people',
+    price:'$8,999', priceNum:8999, badge:'Premium', pop:false,
+    stripeLink:'https://buy.stripe.com/YOUR_MW20_LINK',
+    icon:'🏡', videoId:'hv-mw20', videoUrl:null,
+    desc:'The pinnacle. ThermoWood® sunbeds, multi-zone LED, covered porch, and the thickest walls in the collection.',
+    dims:'78.7″ × 77.6″', thick:'1.7″ walls',
+    specs:[['Capacity','5–6 People'],['Dimensions','78.7″ × 77.6″'],['Wall Thickness','1.7″'],['Material','ThermoWood®'],['Shipping','$950 Flat'],['Warranty','10 Years']],
+    features:[
+      {id:'ext',icon:'🪵',name:'1.7″ Shell',desc:'Thickest walls in the collection — superior heat retention in cold climates.',specs:[['Thickness','1.7″'],['Heat Retention','Best'],['Rating','All-Season']]},
+      {id:'sun',icon:'🛋',name:'ThermoWood® Sunbeds',desc:'Integrated reclining sunbeds for the full Finnish spa experience.',specs:[['Design','Reclining'],['Material','ThermoWood®'],['Count','2 Full-Length']]},
+      {id:'led',icon:'💡',name:'Multi-Zone LED',desc:'Three-zone LED system: upper bench, lower bench, exterior porch.',specs:[['Zones','3 Independent'],['Colors','Warm/Cool/RGB'],['App','Mobile Ready']]},
+      {id:'porch',icon:'🌄',name:'Covered Porch',desc:'Extended covered entry porch for cooling down between sessions.',specs:[['Depth','24″ Covered'],['Decking','Cedar'],['Rail','Optional']]},
+    ]
+  },
+  {
+    id:'plunge', model:'Add-On', name:'Cold Plunge Tub', cap:'1–2 people',
+    price:'From $1,200', priceNum:1200, badge:'Recovery', pop:false,
+    stripeLink:'https://buy.stripe.com/YOUR_PLUNGE_LINK',
+    icon:'🌊', videoId:'hv-plunge', videoUrl:null,
+    desc:'Complete the hot/cold ritual. Cedar-wrapped plunge tubs pair perfectly with any MW model.',
+    dims:'60″ × 30″', thick:'Cedar surround',
+    specs:[['Capacity','1–2 People'],['Temp Range','34–60°F'],['Volume','~110 Gallons'],['Material','Cedar + Fiberglass'],['Chiller','Optional'],['Pairs With','Any MW Model']],
+    features:[
+      {id:'cold',icon:'❄',name:'Cold Therapy',desc:'Reduces inflammation, boosts recovery. 3–5 min per session.',specs:[['Protocol','3–5 min'],['Benefit','Anti-Inflammatory'],['Range','34–60°F']]},
+      {id:'mat',icon:'🪵',name:'Cedar Surround',desc:'Matching cedar exterior coordinates with all MW models.',specs:[['Material','Red Cedar'],['Finish','Natural Oil'],['Match','All MW Models']]},
+      {id:'chl',icon:'🌡',name:'Optional Chiller',desc:'Integrated chiller for consistent temp without constant ice.',specs:[['Output','1/4 HP'],['Stability','±2°F'],['Noise','<40 dB']]},
+      {id:'pair',icon:'🤝',name:'Bundle & Save',desc:'Order with any MW model and save $200.',specs:[['Savings','$200 Off'],['Bundle','Any MW Model'],['Ship','Coordinated']]},
+    ]
+  }
+];
+
+let activeProduct = 'mw12';
+let activeTourProduct = null;
+
+/* ════════════════════════════════════
+   GATE LOGIC
+════════════════════════════════════ */
+function enterSauna() {
+  const gate = document.getElementById('gate');
+  gate.classList.add('exiting');
+  setTimeout(() => {
+    gate.classList.add('gone');
+    const site = document.getElementById('site');
+    site.style.display = 'block';
+    setTimeout(() => site.classList.add('visible'), 20);
+  }, 600);
+}
+
+function enterPodcast() {
+  const gate = document.getElementById('gate');
+  gate.classList.add('exiting');
+  setTimeout(() => {
+    gate.classList.add('gone');
+    const pp = document.getElementById('podcast-page');
+    pp.style.display = 'flex';
+    pp.style.flexDirection = 'column';
+    pp.style.alignItems = 'center';
+    pp.style.justifyContent = 'center';
+    pp.classList.add('visible');
+    buildPodWave();
+  }, 600);
+}
+
+function returnToGate(e) {
+  if (e) e.preventDefault();
+  // hide everything
+  document.getElementById('site').style.display = 'none';
+  document.getElementById('site').classList.remove('visible');
+  document.getElementById('podcast-page').style.display = 'none';
+  document.getElementById('podcast-page').classList.remove('visible');
+  // restore gate
+  const gate = document.getElementById('gate');
+  gate.classList.remove('exiting','gone');
+}
+
+/* ════════════════════════════════════
+   GATE DECORATIONS
+════════════════════════════════════ */
+function buildEmbers() {
+  const field = document.getElementById('emberField');
+  if (!field) return;
+  for (let i = 0; i < 18; i++) {
+    const e = document.createElement('div');
+    e.className = 'ember';
+    const sz = 2 + Math.random() * 4;
+    e.style.cssText = `
+      width:${sz}px; height:${sz}px;
+      left:${10 + Math.random() * 80}%;
+      bottom:${Math.random() * 40}%;
+      --dur:${3 + Math.random() * 4}s;
+      --del:${Math.random() * 5}s;
+      --drift:${(Math.random() - 0.5) * 50}px;
+    `;
+    field.appendChild(e);
+  }
+}
+
+function buildWaveBars() {
+  const c = document.getElementById('waveBars');
+  if (!c) return;
+  c.innerHTML = '';
+  for (let i = 0; i < 60; i++) {
+    const b = document.createElement('div');
+    b.className = 'wave-bar';
+    const hmin = 4 + Math.random() * 12;
+    const hmax = 20 + Math.random() * 80;
+    b.style.cssText = `--spd:${0.6+Math.random()*1.4}s;--wdel:${Math.random()*1.2}s;--hmin:${hmin}px;--hmax:${hmax}px;`;
+    c.appendChild(b);
+  }
+}
+
+function buildPodWave() {
+  const c = document.getElementById('podWave');
+  if (!c) return;
+  c.innerHTML = '';
+  for (let i = 0; i < 80; i++) {
+    const b = document.createElement('div');
+    b.className = 'pod-bar';
+    const h1 = 5 + Math.random() * 15;
+    const h2 = 30 + Math.random() * 120;
+    b.style.cssText = `--spd:${0.5+Math.random()*1.5}s;--del:${Math.random()*1.5}s;--h1:${h1}px;--h2:${h2}px;`;
+    c.appendChild(b);
+  }
+}
+
+/* ════════════════════════════════════
+   CAROUSEL + HERO
+════════════════════════════════════ */
+function renderCarousel() {
+  const track = document.getElementById('carouselTrack');
+  track.innerHTML = PRODUCTS.map((p,i) => `
+    <div class="cc ${p.id===activeProduct?'active':''}" id="cc-${p.id}" onclick="selectProduct('${p.id}')">
+      <div class="cc-row">
+        <div class="cc-l">
+          <div class="cc-n">${String(i+1).padStart(2,'0')}</div>
+          <div>
+            <div class="cc-nm">${p.icon} ${p.model}</div>
+            <div class="cc-cap">${p.cap}</div>
+          </div>
+        </div>
+        <div class="cc-r">
+          <div class="cc-price">${p.price}</div>
+          <span class="cc-arr">›</span>
+        </div>
+      </div>
+      <div class="cc-drawer">
+        <div class="cc-specs-row">${p.specs.slice(0,4).map(s=>`<span class="cc-spec">${s[1]}</span>`).join('')}</div>
+        <div class="cc-desc">${p.desc}</div>
+        <div class="cc-btns">
+          <a class="btn-cc-buy" href="${p.stripeLink}" target="_blank" rel="noopener">Buy Now — ${p.price}</a>
+          <button class="btn-cc-tour" onclick="event.stopPropagation();openTour('${p.id}')">▶ Tour</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function selectProduct(id) {
+  activeProduct = id;
+  const p = PRODUCTS.find(x=>x.id===id);
+  document.querySelectorAll('.cc').forEach(c=>c.classList.remove('active'));
+  document.getElementById('cc-'+id)?.classList.add('active');
+
+  // crossfade bg video
+  document.querySelectorAll('.hero-video').forEach(v=>v.classList.remove('active'));
+  const vid = document.getElementById(p.videoId);
+  if (vid?.src) { vid.classList.add('active'); vid.play().catch(()=>{}); }
+
+  document.getElementById('heroBody').textContent = p.desc;
+
+  // video status
+  const pill = document.getElementById('vsPill');
+  const lbl = document.getElementById('vsLbl');
+  if (p.videoUrl) { pill.className='vs-pill live'; lbl.textContent=`${p.model} · Live`; }
+  else { pill.className='vs-pill'; lbl.textContent='Video pending — upload photos in Admin'; }
+}
+
+function renderProductGrid() {
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = PRODUCTS.map(p=>`
+    <div class="pc">
+      <div class="pc-img">
+        <div class="pc-img-icon">${p.icon}</div>
+        <div class="pc-bdg${p.pop?' pop':''}">${p.badge}</div>
+        <button class="pc-vbtn" onclick="openTour('${p.id}')">▶ Virtual Tour</button>
+      </div>
+      <div class="pc-body">
+        <div class="pc-model">${p.model}</div>
+        <div class="pc-name">${p.name}</div>
+        <div class="pc-cap">${p.cap} · ${p.dims}</div>
+        <div class="pc-specs">${p.specs.slice(0,4).map(s=>`<div class="pc-spec-row"><span class="sk">${s[0]}</span><span class="sv">${s[1]}</span></div>`).join('')}</div>
+        <div class="pc-foot">
+          <div class="pc-price">${p.price}<small>+ $950 shipping</small></div>
+          <a class="btn-buy" href="${p.stripeLink}" target="_blank" rel="noopener">Order Now</a>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════
+   VIRTUAL TOUR
+════════════════════════════════════ */
+function openTour(id) {
+  const p = PRODUCTS.find(x=>x.id===id)||PRODUCTS[0];
+  activeTourProduct = id;
+  document.getElementById('tourTtl').textContent = `${p.icon} ${p.model} — ${p.name}`;
+  document.getElementById('tphIcon').textContent = p.icon;
+  document.getElementById('tphTitle').textContent = p.name;
+
+  const vid = document.getElementById('tourVid');
+  const ph = document.getElementById('tourPh');
+  if (p.videoUrl) {
+    vid.src=p.videoUrl; vid.style.display='block'; vid.play().catch(()=>{});
+    ph.style.display='none';
+  } else {
+    vid.style.display='none'; ph.style.display='flex';
+    document.getElementById('uploadZone').style.display='block';
+    document.getElementById('genBox').classList.remove('show');
+  }
+
+  document.getElementById('featPills').innerHTML = p.features.map(f=>`
+    <div class="fpill" id="fp-${f.id}" onclick="showFeat('${id}','${f.id}')">
+      <div class="fp-ic">${f.icon}</div>
+      <span class="fp-lb">${f.name}</span>
+    </div>`).join('');
+
+  document.getElementById('tourOv').classList.add('open');
+  document.body.style.overflow='hidden';
+  document.getElementById('featTip').classList.remove('on');
+}
+
+function closeTour() {
+  document.getElementById('tourOv').classList.remove('open');
+  document.body.style.overflow='';
+  document.getElementById('tourVid').pause();
+}
+
+function showFeat(productId, fid) {
+  const p = PRODUCTS.find(x=>x.id===productId);
+  const f = p.features.find(x=>x.id===fid);
+  if (!f) return;
+  document.querySelectorAll('.fpill').forEach(x=>x.classList.remove('on'));
+  document.getElementById('fp-'+fid)?.classList.add('on');
+  document.getElementById('ftH').textContent = f.icon+' '+f.name;
+  document.getElementById('ftB').textContent = f.desc;
+  document.getElementById('ftRows').innerHTML = f.specs.map(([k,v])=>`<div class="ft-row"><span class="ft-k">${k}</span><span class="ft-v">${v}</span></div>`).join('');
+  document.getElementById('featTip').classList.add('on');
+}
+
+/* ════════════════════════════════════
+   PHOTO UPLOAD → HIGGSFIELD
+════════════════════════════════════ */
+function handlePhotoSelect(e) {
+  processPhotos(Array.from(e.target.files));
+}
+
+async function processPhotos(files) {
+  const sel = files.slice(0,5);
+  document.getElementById('uploadZone').style.display='none';
+  const gb = document.getElementById('genBox'); gb.classList.add('show');
+  document.getElementById('genLbl').textContent='Uploading to Higgsfield…';
+  const pv = document.getElementById('genPrevs'); pv.innerHTML='';
+  sel.forEach(f=>{ const img=document.createElement('img'); img.src=URL.createObjectURL(f); pv.appendChild(img); });
+  const steps=[[700,'Uploading to Higgsfield…'],[1900,'Analyzing composition…'],[3400,'Seedance 2.0 — generating…'],[6200,'Rendering 1080p frames…'],[9000,'Finalizing output…']];
+  steps.forEach(([d,l])=>setTimeout(()=>{ document.getElementById('genLbl').textContent=l; },d));
+  setTimeout(()=>{
+    gb.style.background='rgba(60,140,100,0.1)'; gb.style.borderColor='rgba(60,200,120,0.28)';
+    document.getElementById('genLbl').textContent='✓ Ready — set videoUrl to activate';
+    showToast('Photos queued for Higgsfield generation');
+  },10200);
+}
+
+// API: window.setProductVideo('mw12', 'https://cdn.higgsfield.ai/...')
+window.setProductVideo = function(productId, url) {
+  const p = PRODUCTS.find(x=>x.id===productId); if(!p) return;
+  p.videoUrl = url;
+  const hv = document.getElementById(p.videoId);
+  if (hv) { hv.src=url; if(activeProduct===productId){ hv.play().catch(()=>{}); hv.classList.add('active'); } }
+  if (activeTourProduct===productId && document.getElementById('tourOv').classList.contains('open')) {
+    const tv=document.getElementById('tourVid');
+    tv.src=url; tv.style.display='block'; tv.play().catch(()=>{});
+    document.getElementById('tourPh').style.display='none';
+  }
+  selectProduct(activeProduct);
+  renderCarousel(); renderProductGrid();
+  showToast(`✦ ${p.model} video live!`);
+};
+
+/* ════════════════════════════════════
+   MISC
+════════════════════════════════════ */
+window.addEventListener('scroll',()=>{
+  document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY>60);
+});
+
+function submitQuote() {
+  const e = document.getElementById('qEmail').value.trim();
+  if (!e||!e.includes('@')) { showToast('Enter a valid email'); return; }
+  showToast('✓ Thanks! We\'ll be in touch shortly.');
+  document.getElementById('qEmail').value='';
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeTour(); });
+
+// INIT
+buildEmbers();
+buildWaveBars();
+renderCarousel();
+renderProductGrid();
+selectProduct('mw12');
+</script>
+</body>
+</html>
